@@ -141,7 +141,7 @@ export default function LaboratoryPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Laboratory dashboard</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome, Dr. Aditi Nair</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome, Dr. Anjali Vishwakarma</h1>
           </div>
         </div>
 

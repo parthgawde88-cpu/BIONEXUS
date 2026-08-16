@@ -135,7 +135,7 @@ export default function VeterinarianPage() {
         <div className="flex items-center gap-3 self-start xl:self-auto">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-card">
             <MapPin className="h-4 w-4 text-blue-600" aria-hidden="true" />
-            <span>Clinic: Udaipur Veterinary Unit</span>
+            <span>Clinic:Lalbaugh Veterinary Unit</span>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 shadow-card">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />

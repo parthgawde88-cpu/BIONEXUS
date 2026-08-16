@@ -128,7 +128,7 @@ export default function PashuSakhiPage() {
         <div className="flex items-center gap-3 self-start xl:self-auto">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-card">
             <MapPin className="h-4 w-4 text-teal-600" aria-hidden="true" />
-            <span>Area: Udaipur cluster, Rajasthan</span>
+            <span>Area: Vikhroli,Mumbai</span>
           </div>
           <button
             type="button"
