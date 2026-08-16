@@ -195,7 +195,7 @@ function SidebarContent({ onClose }) {
           <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
             <LogOut className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </div>
-          Sign Out / Login
+          Login
         </Link>
         <div className="px-3 pt-3 pb-1">
           <p className="text-[10px] text-slate-400 leading-relaxed">
