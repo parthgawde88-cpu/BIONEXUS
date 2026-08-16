@@ -88,14 +88,14 @@ export default function FarmerPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Farmer dashboard</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome back, Ramesh Kumar</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome back, Bhupesh Paliwal</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-3 self-start xl:self-auto">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-card">
             <MapPin className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            <span>Village: Gopalpur, Bihar</span>
+            <span>Village: Udaipur, Rajasthan</span>
           </div>
           <button
             type="button"

@@ -27,14 +27,14 @@ const summaryCards = [
 ];
 
 const appointments = [
-  { time: '09:00 AM', farmer: 'Ramesh Kumar', animalId: 'BLX-204', type: 'Cow', complaint: 'Mastitis and low milk yield', priority: 'High', status: 'Confirmed', action: 'Consult' },
+  { time: '09:00 AM', farmer: 'Bhupesh Paliwal', animalId: 'BLX-204', type: 'Cow', complaint: 'Mastitis and low milk yield', priority: 'High', status: 'Confirmed', action: 'Consult' },
   { time: '10:30 AM', farmer: 'Sita Devi', animalId: 'BLX-118', type: 'Goat', complaint: 'Vaccination follow-up', priority: 'Medium', status: 'Scheduled', action: 'Review' },
   { time: '12:15 PM', farmer: 'Ram Lal', animalId: 'BLX-347', type: 'Buffalo', complaint: 'Fever and reduced appetite', priority: 'Critical', status: 'Urgent', action: 'Assess' },
   { time: '02:45 PM', farmer: 'Anita Yadav', animalId: 'BLX-521', type: 'Cow', complaint: 'Hoof lesion and lameness', priority: 'Medium', status: 'Confirmed', action: 'Consult' },
 ];
 
 const activeCases = [
-  { id: 'VT-204', animalId: 'BLX-204', type: 'Cow', farmer: 'Ramesh Kumar', condition: 'Mastitis with reduced milk yield', severity: 'High', treatment: 'Antibiotic course', lastConsult: '2026-08-15' },
+  { id: 'VT-204', animalId: 'BLX-204', type: 'Cow', farmer: 'Bhupesh Paliwal', condition: 'Mastitis with reduced milk yield', severity: 'High', treatment: 'Antibiotic course', lastConsult: '2026-08-15' },
   { id: 'VT-118', animalId: 'BLX-118', type: 'Goat', farmer: 'Sita Devi', condition: 'Respiratory stress and cough', severity: 'Medium', treatment: 'Monitoring + meds', lastConsult: '2026-08-13' },
   { id: 'VT-347', animalId: 'BLX-347', type: 'Buffalo', farmer: 'Ram Lal', condition: 'Pyrexia and dehydration', severity: 'Critical', treatment: 'Urgent evaluation', lastConsult: '2026-08-14' },
   { id: 'VT-521', animalId: 'BLX-521', type: 'Cow', farmer: 'Anita Yadav', condition: 'Lameness and minor swelling', severity: 'Low', treatment: 'Hoof care / rest', lastConsult: '2026-08-12' },
@@ -71,7 +71,7 @@ const quickActions = [
 ];
 
 const recentClinicalActivity = [
-  { category: 'Consultation', title: 'Reviewed mastitis case in Gopalpur', time: 'Today, 08:40 AM', tag: 'Completed' },
+  { category: 'Consultation', title: 'Reviewed mastitis case in Udaipur', time: 'Today, 08:40 AM', tag: 'Completed' },
   { category: 'Diagnosis', title: 'Recorded respiratory stress diagnosis for BLX-118', time: 'Yesterday, 04:15 PM', tag: 'Updated' },
   { category: 'Treatment', title: 'Antibiotic regimen updated for BLX-204', time: 'Aug 14, 02:10 PM', tag: 'Actioned' },
   { category: 'Laboratory', title: 'Received milk culture result for BLX-521', time: 'Aug 12, 11:45 AM', tag: 'Received' },
@@ -128,14 +128,14 @@ export default function VeterinarianPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Veterinarian dashboard</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome, Dr. Meena Sharma</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome, Dr. Parth Gawde</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-3 self-start xl:self-auto">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-card">
             <MapPin className="h-4 w-4 text-blue-600" aria-hidden="true" />
-            <span>Clinic: Gopalpur Veterinary Unit</span>
+            <span>Clinic: Udaipur Veterinary Unit</span>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 shadow-card">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />

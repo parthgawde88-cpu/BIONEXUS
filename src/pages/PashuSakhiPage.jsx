@@ -28,14 +28,14 @@ const summaryCards = [
 ];
 
 const todaysVisits = [
-  { farmer: 'Ramesh Kumar', village: 'Gopalpur', animal: 'Cow', reason: 'Mastitis check', time: '09:30 AM', status: 'Scheduled', action: 'Open' },
+  { farmer: 'Bhupesh Paliwal', village: 'Udaipur', animal: 'Cow', reason: 'Mastitis check', time: '09:30 AM', status: 'Scheduled', action: 'Open' },
   { farmer: 'Sita Devi', village: 'Bharampur', animal: 'Goat', reason: 'Vaccination follow-up', time: '10:45 AM', status: 'Ongoing', action: 'Update' },
   { farmer: 'Ram Lal', village: 'Nawada', animal: 'Buffalo', reason: 'Fever observation', time: '12:15 PM', status: 'Delayed', action: 'Review' },
   { farmer: 'Anita Yadav', village: 'Sarai', animal: 'Cow', reason: 'Milk quality check', time: '03:00 PM', status: 'Scheduled', action: 'Open' },
 ];
 
 const activeCases = [
-  { id: 'CASE-204', farmer: 'Ramesh Kumar', animal: 'Cow', issue: 'Mild mastitis', severity: 'High', lastVisit: '2026-08-14', status: 'Monitoring' },
+  { id: 'CASE-204', farmer: 'Bhupesh Paliwal', animal: 'Cow', issue: 'Mild mastitis', severity: 'High', lastVisit: '2026-08-14', status: 'Monitoring' },
   { id: 'CASE-118', farmer: 'Sita Devi', animal: 'Goat', issue: 'Vaccination missed', severity: 'Medium', lastVisit: '2026-08-12', status: 'Follow-up' },
   { id: 'CASE-347', farmer: 'Ram Lal', animal: 'Buffalo', issue: 'Low appetite / fever', severity: 'High', lastVisit: '2026-08-11', status: 'Urgent' },
   { id: 'CASE-521', farmer: 'Anita Yadav', animal: 'Cow', issue: 'Hoof check', severity: 'Low', lastVisit: '2026-08-10', status: 'Stable' },
@@ -50,7 +50,7 @@ const vaccinationTasks = [
 
 const alerts = [
   { title: 'Urgent animal health case', detail: 'Buffalo case at Nawada requires same-day review by vet.', severity: 'High', tone: 'danger' },
-  { title: 'Vaccination due', detail: 'Gopalpur cattle group needs FMD vaccination before 5 PM today.', severity: 'Medium', tone: 'warning' },
+  { title: 'Vaccination due', detail: 'Udaipur cattle group needs FMD vaccination before 5 PM today.', severity: 'Medium', tone: 'warning' },
   { title: 'Pending veterinarian visit', detail: 'Vet referral for mastitis case is waiting for confirmation.', severity: 'Medium', tone: 'info' },
   { title: 'Laboratory report available', detail: 'Milk test result for Sita Devi’s goat cohort is ready.', severity: 'Low', tone: 'success' },
 ];
@@ -64,7 +64,7 @@ const quickActions = [
 ];
 
 const recentActivity = [
-  { category: 'Field visit', title: 'Completed mastitis assessment in Gopalpur', time: 'Today, 08:40 AM', tag: 'Completed' },
+  { category: 'Field visit', title: 'Completed mastitis assessment in Udaipur', time: 'Today, 08:40 AM', tag: 'Completed' },
   { category: 'Health record', title: 'Updated vaccination notes for goat group', time: 'Yesterday, 04:10 PM', tag: 'Updated' },
   { category: 'Vaccination', title: 'Recorded FMD vaccination for 5 cattle', time: 'Aug 14, 02:40 PM', tag: 'Recorded' },
   { category: 'Referral', title: 'Vet referral sent for fever case in Nawada', time: 'Aug 13, 11:20 AM', tag: 'Referral' },
@@ -121,14 +121,14 @@ export default function PashuSakhiPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pashu Sakhi dashboard</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome, Asha Devi</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Welcome, Janvi Madam </h1>
           </div>
         </div>
 
         <div className="flex items-center gap-3 self-start xl:self-auto">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-card">
             <MapPin className="h-4 w-4 text-teal-600" aria-hidden="true" />
-            <span>Area: Gopalpur cluster, Bihar</span>
+            <span>Area: Udaipur cluster, Rajasthan</span>
           </div>
           <button
             type="button"
