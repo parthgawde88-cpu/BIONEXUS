@@ -6,7 +6,6 @@ import LoginPage from './pages/LoginPage';
 import FarmerPage from './pages/FarmerPage';
 import PashuSakhiPage from './pages/PashuSakhiPage';
 import VeterinarianPage from './pages/VeterinarianPage';
-import LaboratoryPage from './pages/LaboratoryPage';
 import KendraPage from './pages/KendraPage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -21,7 +20,6 @@ export default function App() {
           <Route path="farmer" element={<FarmerPage />} />
           <Route path="pashu-sakhi" element={<PashuSakhiPage />} />
           <Route path="veterinarian" element={<VeterinarianPage />} />
-          <Route path="laboratory" element={<LaboratoryPage />} />
           <Route path="kendra" element={<KendraPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="*" element={<NotFoundPage />} />

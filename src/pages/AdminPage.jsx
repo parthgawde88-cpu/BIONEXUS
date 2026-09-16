@@ -22,7 +22,7 @@ const roles = [
   { role: 'Farmers', total: '12,486', active: '11,904', attention: '582 pending verification', icon: Wheat, tone: 'emerald' },
   { role: 'Pashu Sakhis', total: '348', active: '326', attention: '22 onboarding', icon: UserRound, tone: 'teal' },
   { role: 'Veterinarians', total: '162', active: '148', attention: '14 profile reviews', icon: Stethoscope, tone: 'blue' },
-  { role: 'Laboratory staff', total: '74', active: '69', attention: '5 access requests', icon: FlaskConical, tone: 'purple' },
+  { role: 'Diagnostic workflow access', total: '74', active: '69', attention: '5 access requests', icon: FlaskConical, tone: 'purple' },
   { role: 'Kendra staff', total: '126', active: '119', attention: '7 role updates', icon: Building2, tone: 'amber' },
 ];
 

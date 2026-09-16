@@ -1,2 +1,1 @@
-// React Context state providers export barrel
-export {};
+export { BionexusProvider, useBionexus } from './BionexusContext';

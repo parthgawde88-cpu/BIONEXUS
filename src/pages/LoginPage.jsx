@@ -17,7 +17,6 @@ const ROLES = [
   { value: 'farmer',        label: 'Farmer — किसान' },
   { value: 'pashu-sakhi',   label: 'Pashu Sakhi — पशु सखी' },
   { value: 'veterinarian',  label: 'Veterinarian — पशु चिकित्सक' },
-  { value: 'laboratory',    label: 'Laboratory — प्रयोगशाला' },
   { value: 'kendra',        label: 'Pashu Seva Kendra — पशु सेवा केंद्र' },
   { value: 'admin',         label: 'System Administrator' },
 ];
