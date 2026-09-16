@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Bell,
   MapPin,
@@ -18,6 +20,9 @@ import {
 import Button from '../components/ui/Button';
 import Card, { CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import { useBionexus } from '../context';
+import { formatDateTime } from '../utils/casePresentation';
+import { sampleTypeLabel } from '../utils/samplePresentation';
 
 const summaryCards = [
   { label: 'Today’s appointments', value: '18', detail: 'Across 3 villages', icon: CalendarClock, tone: 'blue' },
@@ -62,6 +67,7 @@ const alerts = [
 ];
 
 const quickActions = [
+  { title: 'Open case queue', icon: ClipboardPlus, variant: 'primary', path: '/veterinarian/cases' },
   { title: 'Start consultation', icon: Stethoscope, variant: 'primary' },
   { title: 'Add health record', icon: ClipboardPlus, variant: 'secondary' },
   { title: 'Create treatment plan', icon: FileText, variant: 'outline' },
@@ -119,6 +125,10 @@ const statusVariant = (status) => {
 };
 
 export default function VeterinarianPage() {
+  const navigate = useNavigate();
+  const { samples } = useBionexus();
+  const pendingSampleResults = samples.filter((sample) => sample.status === 'RESULT_AVAILABLE');
+
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8">
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -164,6 +174,8 @@ export default function VeterinarianPage() {
           </div>
         </div>
       </Card>
+
+      <Card className="mb-6 border-indigo-200 bg-white"><CardHeader><div><CardTitle>PENDING SAMPLE RESULTS</CardTitle><CardDescription>Diagnostic results awaiting veterinarian review.</CardDescription></div><Badge variant="info">{pendingSampleResults.length} pending</Badge></CardHeader><div className="space-y-3">{pendingSampleResults.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No sample results pending review.</p> : pendingSampleResults.map((sample) => <div key={sample.sampleId} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">{sample.sampleId}</p><p className="mt-1 text-sm text-slate-600">Case {sample.caseId} · {sampleTypeLabel(sample.sampleType)} · Result: {sample.result}</p><p className="mt-1 text-xs text-slate-500">Collected {formatDateTime(sample.collectedAt)} · Tested {sample.testDate || 'Not recorded'}</p></div><Link to={`/veterinarian/samples/${sample.sampleId}`}><Button variant="outline" size="sm">Review Result</Button></Link></div>)}</div></Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map(({ label, value, detail, icon: Icon, tone }) => (
@@ -412,13 +424,14 @@ export default function VeterinarianPage() {
           </CardHeader>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {quickActions.map(({ title, icon: Icon, variant }) => (
+            {quickActions.map(({ title, icon: Icon, variant, path }) => (
               <Button
                 key={title}
                 variant={variant}
                 className="h-auto justify-between rounded-xl px-4 py-3"
                 icon={ArrowRight}
                 iconPosition="right"
+                onClick={() => path && navigate(path)}
               >
                 <span className="flex items-center gap-2">
                   <Icon className="h-4 w-4" aria-hidden="true" />

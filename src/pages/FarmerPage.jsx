@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bell,
   MapPin,
@@ -40,10 +41,10 @@ const healthAlerts = [
 ];
 
 const quickActions = [
-  { title: 'Book veterinarian', icon: Stethoscope, variant: 'primary' },
+  { title: 'Report Health Issue', icon: HeartPulse, variant: 'primary', path: '/farmer/cases/new' },
   { title: 'Request laboratory test', icon: FlaskConical, variant: 'secondary' },
   { title: 'Contact Pashu Sakhi', icon: Plus, variant: 'outline' },
-  { title: 'View livestock records', icon: FileText, variant: 'ghost' },
+  { title: 'View Case History', icon: FileText, variant: 'ghost', path: '/farmer/cases' },
 ];
 
 const recentActivity = [
@@ -79,6 +80,8 @@ const getAlertVariant = (tone) => {
 };
 
 export default function FarmerPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8">
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -257,13 +260,14 @@ export default function FarmerPage() {
           </CardHeader>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {quickActions.map(({ title, icon: Icon, variant }) => (
+            {quickActions.map(({ title, icon: Icon, variant, path }) => (
               <Button
                 key={title}
                 variant={variant}
                 className="h-auto justify-between rounded-xl px-4 py-3"
                 icon={ArrowRight}
                 iconPosition="right"
+                onClick={() => path && navigate(path)}
               >
                 <span className="flex items-center gap-2">
                   <Icon className="h-4 w-4" aria-hidden="true" />

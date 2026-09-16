@@ -33,6 +33,17 @@ export const SAMPLE_STATUS = Object.freeze({
   REVIEWED: 'REVIEWED',
 });
 
+export const SAMPLE_STATUS_SEQUENCE = Object.freeze([
+  SAMPLE_STATUS.REQUESTED,
+  SAMPLE_STATUS.COLLECTED,
+  SAMPLE_STATUS.RECEIVED_AT_KENDRA,
+  SAMPLE_STATUS.STORED,
+  SAMPLE_STATUS.PICKED_UP,
+  SAMPLE_STATUS.TESTING,
+  SAMPLE_STATUS.RESULT_AVAILABLE,
+  SAMPLE_STATUS.REVIEWED,
+]);
+
 export const PRESCRIPTION_ITEM_TYPES = Object.freeze({
   TREATMENT: 'TREATMENT',
   PREVENTIVE_ACTION: 'PREVENTIVE_ACTION',
@@ -99,14 +110,42 @@ export const createPrescription = (input) => ({
 });
 
 export const createSample = (input) => ({
-  sampleId: input.sampleId || `SAMPLE-${Date.now()}`,
+  sampleId: input.sampleId,
   caseId: input.caseId,
+  farmerId: input.farmerId,
+  animalId: input.animalId,
+  flockId: input.flockId,
+  veterinarianId: input.veterinarianId,
   collectedBy: input.collectedBy || null,
   sampleType: input.sampleType,
+  priority: input.priority || 'ROUTINE',
+  collectionInstructions: input.collectionInstructions || '',
+  requestedAt: input.requestedAt || new Date().toISOString(),
   collectedAt: input.collectedAt || null,
+  collectionLocation: input.collectionLocation || null,
+  collectionNotes: input.collectionNotes || '',
   kendraId: input.kendraId || null,
   status: input.status || SAMPLE_STATUS.REQUESTED,
   qrCodeReference: input.qrCodeReference || null,
+  receivedAt: input.receivedAt || null,
+  receivedBy: input.receivedBy || null,
+  storedAt: input.storedAt || null,
+  pickedUpAt: input.pickedUpAt || null,
+  testingStartedAt: input.testingStartedAt || null,
+  result: input.result || null,
+  testMethod: input.testMethod || null,
+  testDate: input.testDate || null,
+  resultRemarks: input.resultRemarks || '',
+  reviewedAt: input.reviewedAt || null,
+  reviewedBy: input.reviewedBy || null,
+  clinicalInterpretation: input.clinicalInterpretation || '',
+  nextAction: input.nextAction || '',
+  history: input.history || [{
+    status: input.status || SAMPLE_STATUS.REQUESTED,
+    timestamp: input.requestedAt || new Date().toISOString(),
+    responsibleRole: input.requestedByRole || 'VETERINARIAN',
+    location: input.requestedLocation || null,
+  }],
 });
 
 /** @type {Object} AI analysis is advisory only and never a clinical decision. */

@@ -29,6 +29,8 @@ export const mockStore = {
   alerts: [],
   riskZones: [],
   notifications: [],
+  veterinarianAssessments: [],
+  emergencyTasks: [],
   auditEvents: [],
 };
 

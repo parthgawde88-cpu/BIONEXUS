@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bell,
   MapPin,
@@ -19,6 +20,9 @@ import {
 import Button from '../components/ui/Button';
 import Card, { CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import { useBionexus } from '../context';
+import { formatDateTime, getCaseSubject } from '../utils/casePresentation';
+import { samplePriorityVariant, sampleTypeLabel } from '../utils/samplePresentation';
 
 const summaryCards = [
   { label: 'Farmers assisted', value: '128', detail: 'Across 6 villages', icon: Tractor, tone: 'emerald' },
@@ -112,6 +116,9 @@ const taskStatusVariant = (status) => {
 };
 
 export default function PashuSakhiPage() {
+  const { samples, cases, farmers, animals, flocks, veterinarians } = useBionexus();
+  const pendingSamples = samples.filter((sample) => sample.status === 'REQUESTED');
+
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8">
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -178,6 +185,25 @@ export default function PashuSakhiPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="mt-8 border-teal-200 bg-white">
+        <CardHeader>
+          <div>
+            <CardTitle>PENDING SAMPLE COLLECTIONS</CardTitle>
+            <CardDescription>Veterinarian-requested samples waiting for field collection.</CardDescription>
+          </div>
+          <Badge variant="warning">{pendingSamples.length} pending</Badge>
+        </CardHeader>
+        <div className="space-y-3">
+          {pendingSamples.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No pending sample collections.</p> : pendingSamples.map((sample) => {
+            const caseItem = cases.find((item) => item.caseId === sample.caseId);
+            const farmer = farmers.find((item) => item.farmerId === sample.farmerId || item.farmerId === caseItem?.farmerId);
+            const subject = caseItem ? getCaseSubject(caseItem, animals, flocks) : null;
+            const vet = veterinarians.find((item) => item.id === sample.veterinarianId);
+            return <div key={sample.sampleId} className="rounded-xl border border-slate-200 p-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><div><p className="text-xs text-slate-500">Sample request</p><p className="mt-1 font-semibold text-slate-900">{sample.sampleId}</p><p className="text-xs text-slate-500">Case {sample.caseId}</p></div><div><p className="text-xs text-slate-500">Farmer / village</p><p className="mt-1 text-sm font-semibold text-slate-800">{farmer?.name}</p><p className="text-xs text-slate-500">{farmer?.address}</p></div><div><p className="text-xs text-slate-500">Animal/Flock</p><p className="mt-1 text-sm font-semibold text-slate-800">{subject?.id}</p><p className="text-xs text-slate-500">{subject?.details?.species}</p></div><div><p className="text-xs text-slate-500">Sample / priority</p><p className="mt-1 text-sm font-semibold text-slate-800">{sampleTypeLabel(sample.sampleType)}</p><Badge className="mt-1" size="sm" variant={samplePriorityVariant(sample.priority)}>{sample.priority}</Badge></div><div><p className="text-xs text-slate-500">Requested by / time</p><p className="mt-1 text-sm text-slate-700">{vet?.name || 'Veterinarian'}</p><p className="text-xs text-slate-500">{formatDateTime(sample.requestedAt)}</p></div></div><div className="mt-4 text-right"><Link to={`/pashu-sakhi/samples/${sample.sampleId}`}><Button variant="primary" size="sm">Open Task</Button></Link></div></div>;
+          })}
+        </div>
+      </Card>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
         <Card className="border-slate-200 bg-white">

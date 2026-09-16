@@ -15,7 +15,8 @@ export function BionexusProvider({ children }) {
   const [cases, setCases] = useState(() => casesService.list());
   const [prescriptions, setPrescriptions] = useState(() => prescriptionsService.list());
   const [samples, setSamples] = useState(() => samplesService.list());
-  const [assessments, setAssessments] = useState([]);
+  const [assessments, setAssessments] = useState(() => [...mockStore.veterinarianAssessments]);
+  const [emergencyTasks, setEmergencyTasks] = useState(() => [...mockStore.emergencyTasks]);
 
   const submitCase = (input) => {
     const item = casesService.submit(input);
@@ -31,17 +32,28 @@ export function BionexusProvider({ children }) {
 
   const recordVeterinarianDecision = (input) => {
     const assessment = createVeterinarianAssessment(input);
-    const status = input.riskLevel === RISK_LEVELS.LOW ? CASE_STATUS.ACTION_REQUIRED : CASE_STATUS.ACTION_REQUIRED;
+    const status = CASE_STATUS.ACTION_REQUIRED;
     casesService.update(input.caseId, { riskLevel: input.riskLevel, status, veterinarianId: input.veterinarianId }, 'caseId');
     appendAuditEvent({ type: 'VETERINARIAN_DECISION', caseId: input.caseId, actorId: input.veterinarianId, riskLevel: input.riskLevel });
+    mockStore.veterinarianAssessments.push(assessment);
     setAssessments((current) => [...current, assessment]);
     setCases(casesService.list());
     return assessment;
   };
 
+  const refreshSamples = () => {
+    setSamples(samplesService.list());
+  };
+
   const requestSample = (input) => {
     const sample = samplesService.request(input);
-    setSamples(samplesService.list());
+    refreshSamples();
+    return sample;
+  };
+
+  const transitionSample = (method, sampleId, input) => {
+    const sample = samplesService[method](sampleId, input);
+    if (sample) refreshSamples();
     return sample;
   };
 
@@ -49,6 +61,14 @@ export function BionexusProvider({ children }) {
     const prescription = prescriptionsService.create(input);
     setPrescriptions(prescriptionsService.list());
     return prescription;
+  };
+
+  const createEmergencyTask = (input) => {
+    const task = { taskId: `TASK-${Date.now()}`, status: 'URGENT', createdAt: new Date().toISOString(), ...input };
+    mockStore.emergencyTasks.push(task);
+    appendAuditEvent({ type: 'EMERGENCY_FIELD_TASK_CREATED', caseId: input.caseId, actorId: input.createdBy });
+    setEmergencyTasks((current) => [...current, task]);
+    return task;
   };
 
   const value = useMemo(() => ({
@@ -62,6 +82,7 @@ export function BionexusProvider({ children }) {
     alerts: mockStore.alerts,
     riskZones: mockStore.riskZones,
     notifications: mockStore.notifications,
+    emergencyTasks,
     auditEvents: mockStore.auditEvents,
     cases,
     assessments,
@@ -71,8 +92,16 @@ export function BionexusProvider({ children }) {
     assignCaseToVeterinarian,
     recordVeterinarianDecision,
     requestSample,
+    collectSample: (sampleId, input) => transitionSample('collect', sampleId, input),
+    receiveSample: (sampleId, input) => transitionSample('receive', sampleId, input),
+    storeSample: (sampleId, input) => transitionSample('store', sampleId, input),
+    pickupSample: (sampleId, input) => transitionSample('pickup', sampleId, input),
+    startTesting: (sampleId, input) => transitionSample('startTesting', sampleId, input),
+    submitSampleResult: (sampleId, input) => transitionSample('submitResult', sampleId, input),
+    reviewSampleResult: (sampleId, input) => transitionSample('reviewResult', sampleId, input),
     createPrescription,
-  }), [cases, assessments, prescriptions, samples]);
+    createEmergencyTask,
+  }), [cases, assessments, prescriptions, samples, emergencyTasks]);
 
   return <BionexusContext.Provider value={value}>{children}</BionexusContext.Provider>;
 }
