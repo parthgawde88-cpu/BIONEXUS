@@ -25,7 +25,7 @@ const ROLES = [
 // ─── LoginPage ────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useBionexus();
+  const { login, setFarmerLanguage } = useBionexus();
 
   const [form, setForm]           = useState({ credential: '', password: '', role: '' });
   const [errors, setErrors]       = useState({});
@@ -58,6 +58,9 @@ export default function LoginPage() {
     setLoading(true);
     setTimeout(() => {
       const role = ROLES.find((item) => item.value === form.role);
+      if (form.role === 'FARMER' && form.language) {
+        setFarmerLanguage(form.language);
+      }
       login({ role: form.role, credential: form.credential });
       setLoading(false);
       navigate(`/${role.path}`);
@@ -198,6 +201,20 @@ export default function LoginPage() {
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </Select>
+
+            {form.role === 'FARMER' && (
+              <Select
+                id="language"
+                name="language"
+                label="Preferred Language / आपकी भाषा"
+                value={form.language || 'hi'}
+                onChange={(e) => setForm((prev) => ({ ...prev, language: e.target.value }))}
+              >
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="en">English</option>
+                <option value="mr">मराठी (Marathi)</option>
+              </Select>
+            )}
 
             {/* Remember / Forgot row */}
             <div className="flex items-center justify-between">

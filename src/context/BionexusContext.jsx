@@ -24,6 +24,78 @@ export function BionexusProvider({ children }) {
   const [inventoryTransactions, setInventoryTransactions] = useState(() => inventoryService.listTransactions());
   const [auditEvents, setAuditEvents] = useState(() => [...mockStore.auditEvents]);
   const [sessionUser, setSessionUser] = useState(null);
+  const [animals, setAnimals] = useState(() => [...mockStore.animals]);
+  const [flocks, setFlocks] = useState(() => [...mockStore.flocks]);
+  const [alerts, setAlerts] = useState(() => [...mockStore.alerts]);
+  const [riskZones, setRiskZones] = useState(() => [...mockStore.riskZones]);
+  const [farmerLanguage, setFarmerLanguageState] = useState(() => localStorage.getItem('bionexus_farmer_lang') || 'hi');
+
+  const setFarmerLanguage = (lang) => {
+    localStorage.setItem('bionexus_farmer_lang', lang);
+    setFarmerLanguageState(lang);
+  };
+
+  const addAnimal = (input) => {
+    const newAnimal = {
+      rapidId: input.rapidId || `BLX-${Math.floor(100 + Math.random() * 900)}`,
+      farmerId: input.farmerId || 'FR-4821',
+      species: input.species || 'CATTLE',
+      breed: input.breed || 'Desi',
+      sex: input.sex || 'FEMALE',
+      age: input.age || '3 years',
+      healthStatus: input.healthStatus || 'HEALTHY',
+      vaccinationStatus: input.vaccinationStatus || 'CURRENT',
+      status: 'ACTIVE',
+    };
+    mockStore.animals.push(newAnimal);
+    setAnimals((prev) => [...prev, newAnimal]);
+    return newAnimal;
+  };
+
+  const addFlock = (input) => {
+    const newFlock = {
+      flockId: input.flockId || `FLK-${Math.floor(10 + Math.random() * 90)}`,
+      farmerId: input.farmerId || 'FR-4821',
+      species: 'POULTRY',
+      breed: input.breed || 'Broiler',
+      count: Number(input.count || 100),
+      age: input.age || '4 weeks',
+      healthStatus: input.healthStatus || 'HEALTHY',
+      vaccinationStatus: input.vaccinationStatus || 'CURRENT',
+      status: 'ACTIVE',
+    };
+    mockStore.flocks.push(newFlock);
+    setFlocks((prev) => [...prev, newFlock]);
+    return newFlock;
+  };
+
+  const createDiseaseAlert = (input) => {
+    const alertId = `ALT-${Date.now()}`;
+    const alertItem = {
+      alertId,
+      caseId: input.caseId,
+      disease: input.disease || 'High Priority Animal Disease',
+      location: input.location || { village: 'Udaipur, Rajasthan' },
+      severity: input.severity || 'HIGH',
+      radiusKm: input.radiusKm || 5,
+      createdByVeterinarian: input.createdBy || 'Dr. Parth Gawde',
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    };
+    const riskZoneItem = {
+      id: `RZ-${Date.now()}`,
+      alertId,
+      village: input.location?.village || 'Udaipur, Rajasthan',
+      riskLevel: input.severity || 'HIGH',
+      radiusKm: input.radiusKm || 5,
+    };
+    mockStore.alerts.push(alertItem);
+    mockStore.riskZones.push(riskZoneItem);
+    setAlerts([...mockStore.alerts]);
+    setRiskZones([...mockStore.riskZones]);
+    appendAuditEvent({ type: 'DISEASE_ALERT_CREATED', alertId, caseId: input.caseId, actorId: input.createdBy });
+    return alertItem;
+  };
 
   const refreshAudit = () => setAuditEvents([...mockStore.auditEvents]);
   const refreshPrescriptions = () => setPrescriptions(prescriptionsService.list());
@@ -54,6 +126,18 @@ export function BionexusProvider({ children }) {
     setAssessments((current) => [...current, assessment]);
     setCases(casesService.list());
     refreshAudit();
+
+    if (input.createDiseaseAlert) {
+      createDiseaseAlert({
+        caseId: input.caseId,
+        disease: input.diseaseName || 'Confirmed Infectious Outbreak',
+        location: input.location,
+        severity: input.riskLevel === 'RED' ? 'CRITICAL' : 'HIGH',
+        radiusKm: input.radiusKm || 10,
+        createdBy: input.veterinarianId,
+      });
+    }
+
     return assessment;
   };
 
@@ -150,8 +234,10 @@ export function BionexusProvider({ children }) {
   const createEmergencyTask = (input) => {
     const task = { taskId: `TASK-${Date.now()}`, status: 'URGENT', createdAt: new Date().toISOString(), ...input };
     mockStore.emergencyTasks.push(task);
+    casesService.update(input.caseId, { riskLevel: 'RED', status: CASE_STATUS.ACTION_REQUIRED }, 'caseId');
     appendAuditEvent({ type: 'EMERGENCY_FIELD_TASK_CREATED', caseId: input.caseId, actorId: input.createdBy });
     setEmergencyTasks((current) => [...current, task]);
+    setCases(casesService.list());
     refreshAudit();
     return task;
   };
@@ -174,14 +260,19 @@ export function BionexusProvider({ children }) {
   const value = useMemo(() => ({
     users: mockStore.users,
     farmers: mockStore.farmers,
-    animals: mockStore.animals,
-    flocks: mockStore.flocks,
+    animals,
+    flocks,
+    addAnimal,
+    addFlock,
     veterinarians: mockStore.veterinarians,
     medicines: mockStore.medicines,
     inventory,
     inventoryTransactions,
-    alerts: mockStore.alerts,
-    riskZones: mockStore.riskZones,
+    alerts,
+    riskZones,
+    createDiseaseAlert,
+    farmerLanguage,
+    setFarmerLanguage,
     notifications: mockStore.notifications,
     emergencyTasks,
     auditEvents,
@@ -209,7 +300,7 @@ export function BionexusProvider({ children }) {
     verifyPrescriptionMedicine,
     dispensePrescription,
     createEmergencyTask,
-  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, auditEvents, sessionUser]);
+  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, auditEvents, sessionUser, animals, flocks, alerts, riskZones, farmerLanguage]);
 
   return <BionexusContext.Provider value={value}>{children}</BionexusContext.Provider>;
 }
