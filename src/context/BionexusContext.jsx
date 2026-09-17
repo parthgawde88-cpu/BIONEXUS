@@ -2,11 +2,13 @@ import React, { createContext, useContext, useMemo, useState } from 'react';
 import {
   CASE_STATUS,
   createVeterinarianAssessment,
-  RISK_LEVELS,
+  PRESCRIPTION_STATUS,
 } from '../domain';
 import casesService from '../services/cases';
-import prescriptionsService from '../services/prescriptions';
+import prescriptionsService, { prescriptionQuantity } from '../services/prescriptions';
 import samplesService from '../services/samples';
+import prescriptionOtpService from '../services/prescriptionOtp';
+import inventoryService from '../services/inventory';
 import { appendAuditEvent, mockStore } from '../services/mockStore';
 
 const BionexusContext = createContext(null);
@@ -17,6 +19,18 @@ export function BionexusProvider({ children }) {
   const [samples, setSamples] = useState(() => samplesService.list());
   const [assessments, setAssessments] = useState(() => [...mockStore.veterinarianAssessments]);
   const [emergencyTasks, setEmergencyTasks] = useState(() => [...mockStore.emergencyTasks]);
+  const [otps, setOtps] = useState(() => prescriptionOtpService.list());
+  const [inventory, setInventory] = useState(() => inventoryService.list());
+  const [inventoryTransactions, setInventoryTransactions] = useState(() => inventoryService.listTransactions());
+  const [auditEvents, setAuditEvents] = useState(() => [...mockStore.auditEvents]);
+
+  const refreshAudit = () => setAuditEvents([...mockStore.auditEvents]);
+  const refreshPrescriptions = () => setPrescriptions(prescriptionsService.list());
+  const refreshOtps = () => setOtps(prescriptionOtpService.list());
+  const refreshInventory = () => {
+    setInventory(inventoryService.list());
+    setInventoryTransactions(inventoryService.listTransactions());
+  };
 
   const submitCase = (input) => {
     const item = casesService.submit(input);
@@ -38,6 +52,7 @@ export function BionexusProvider({ children }) {
     mockStore.veterinarianAssessments.push(assessment);
     setAssessments((current) => [...current, assessment]);
     setCases(casesService.list());
+    refreshAudit();
     return assessment;
   };
 
@@ -58,9 +73,77 @@ export function BionexusProvider({ children }) {
   };
 
   const createPrescription = (input) => {
-    const prescription = prescriptionsService.create(input);
-    setPrescriptions(prescriptionsService.list());
-    return prescription;
+    const prescription = prescriptionsService.create({ ...input, status: PRESCRIPTION_STATUS.CREATED });
+    prescriptionOtpService.generate({
+      prescriptionId: prescription.prescriptionId,
+      farmerId: prescription.farmerId,
+      actorId: prescription.veterinarianId,
+    });
+    prescriptionsService.setStatus(prescription.prescriptionId, PRESCRIPTION_STATUS.OTP_PENDING);
+    refreshPrescriptions();
+    refreshOtps();
+    refreshAudit();
+    return prescriptionsService.getById(prescription.prescriptionId, 'prescriptionId');
+  };
+
+  const verifyPrescriptionOtp = ({ prescriptionId, farmerId, code, actorId }) => {
+    const prescription = prescriptionsService.getById(prescriptionId, 'prescriptionId');
+    if (!prescription) return { ok: false, error: 'NOT_FOUND' };
+    if (prescription.status !== PRESCRIPTION_STATUS.OTP_PENDING) return { ok: false, error: 'NOT_OTP_PENDING' };
+    const result = prescriptionOtpService.verify({ prescriptionId, farmerId, code, actorId });
+    if (!result.ok) {
+      refreshOtps();
+      return result;
+    }
+    prescriptionsService.setStatus(prescriptionId, PRESCRIPTION_STATUS.VERIFIED);
+    refreshPrescriptions();
+    refreshOtps();
+    refreshAudit();
+    return { ok: true };
+  };
+
+  const verifyPrescriptionMedicine = ({ prescriptionId, scannedCode, actorId }) => {
+    const prescription = prescriptionsService.getById(prescriptionId, 'prescriptionId');
+    if (!prescription) return { ok: false, error: 'NOT_FOUND' };
+    if (prescription.status !== PRESCRIPTION_STATUS.VERIFIED) return { ok: false, error: 'OTP_REQUIRED' };
+    const medicine = mockStore.medicines.find((item) => item.medicineId === prescription.medicineId);
+    if (!medicine) return { ok: false, error: 'MEDICINE_MISSING' };
+    const code = String(scannedCode || '').trim();
+    const identityOk = code === medicine.medicineId || code === medicine.batch || code === `QR-${medicine.medicineId}`;
+    if (!identityOk) return { ok: false, error: 'MEDICINE_MISMATCH' };
+    const quantity = prescriptionQuantity(prescription);
+    if (quantity <= 0) return { ok: false, error: 'INVALID_QUANTITY' };
+    const stock = inventoryService.findByMedicine(prescription.medicineId);
+    if (!stock || stock.availableQuantity < quantity) return { ok: false, error: 'INSUFFICIENT_STOCK', stock };
+    prescriptionsService.setStatus(prescriptionId, PRESCRIPTION_STATUS.VERIFIED, {
+      medicineVerified: true,
+      verifiedBatch: medicine.batch,
+    });
+    appendAuditEvent({ type: 'MEDICINE_VERIFIED', prescriptionId, actorId, medicineId: medicine.medicineId, quantity });
+    refreshPrescriptions();
+    refreshAudit();
+    return { ok: true, medicine, quantity, stock };
+  };
+
+  const dispensePrescription = ({ prescriptionId, actorId }) => {
+    const prescription = prescriptionsService.getById(prescriptionId, 'prescriptionId');
+    if (!prescription) return { ok: false, error: 'NOT_FOUND' };
+    if (prescription.status !== PRESCRIPTION_STATUS.VERIFIED) return { ok: false, error: 'OTP_REQUIRED' };
+    if (!prescription.medicineVerified) return { ok: false, error: 'MEDICINE_NOT_VERIFIED' };
+    const quantity = prescriptionQuantity(prescription);
+    const stock = inventoryService.findByMedicine(prescription.medicineId);
+    if (!stock) return { ok: false, error: 'NOT_FOUND' };
+    const result = inventoryService.recordDispensing(stock.inventoryId, quantity, actorId, { prescriptionId });
+    if (!result.ok) return result;
+    prescriptionsService.setStatus(prescriptionId, PRESCRIPTION_STATUS.DISPENSED, {
+      dispensedAt: new Date().toISOString(),
+      dispensedQuantity: quantity,
+    });
+    appendAuditEvent({ type: 'MEDICINE_DISPENSED', prescriptionId, actorId, quantity });
+    refreshPrescriptions();
+    refreshInventory();
+    refreshAudit();
+    return { ok: true, prescription: prescriptionsService.getById(prescriptionId, 'prescriptionId'), inventory: result.entry };
   };
 
   const createEmergencyTask = (input) => {
@@ -68,6 +151,7 @@ export function BionexusProvider({ children }) {
     mockStore.emergencyTasks.push(task);
     appendAuditEvent({ type: 'EMERGENCY_FIELD_TASK_CREATED', caseId: input.caseId, actorId: input.createdBy });
     setEmergencyTasks((current) => [...current, task]);
+    refreshAudit();
     return task;
   };
 
@@ -78,12 +162,14 @@ export function BionexusProvider({ children }) {
     flocks: mockStore.flocks,
     veterinarians: mockStore.veterinarians,
     medicines: mockStore.medicines,
-    inventory: mockStore.inventory,
+    inventory,
+    inventoryTransactions,
     alerts: mockStore.alerts,
     riskZones: mockStore.riskZones,
     notifications: mockStore.notifications,
     emergencyTasks,
-    auditEvents: mockStore.auditEvents,
+    auditEvents,
+    otps,
     cases,
     assessments,
     prescriptions,
@@ -100,8 +186,11 @@ export function BionexusProvider({ children }) {
     submitSampleResult: (sampleId, input) => transitionSample('submitResult', sampleId, input),
     reviewSampleResult: (sampleId, input) => transitionSample('reviewResult', sampleId, input),
     createPrescription,
+    verifyPrescriptionOtp,
+    verifyPrescriptionMedicine,
+    dispensePrescription,
     createEmergencyTask,
-  }), [cases, assessments, prescriptions, samples, emergencyTasks]);
+  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, auditEvents]);
 
   return <BionexusContext.Provider value={value}>{children}</BionexusContext.Provider>;
 }

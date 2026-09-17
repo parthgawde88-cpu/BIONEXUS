@@ -1,5 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useBionexus } from '../context';
+import PrescriptionWorkflowStrip from '../components/PrescriptionWorkflowStrip';
+import { PRESCRIPTION_STATUS } from '../domain';
 import {
   Bell,
   MapPin,
@@ -79,8 +82,18 @@ const getAlertVariant = (tone) => {
   }
 };
 
+const prescriptionStatusVariant = (status) => ({
+  [PRESCRIPTION_STATUS.CREATED]: 'neutral',
+  [PRESCRIPTION_STATUS.OTP_PENDING]: 'warning',
+  [PRESCRIPTION_STATUS.VERIFIED]: 'info',
+  [PRESCRIPTION_STATUS.DISPENSED]: 'success',
+}[status] || 'neutral');
+
 export default function FarmerPage() {
   const navigate = useNavigate();
+  const { farmers, prescriptions, medicines, otps } = useBionexus();
+  const farmer = farmers[0];
+  const farmerPrescriptions = prescriptions.filter((item) => item.farmerId === farmer?.farmerId);
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8">
@@ -110,6 +123,38 @@ export default function FarmerPage() {
           </button>
         </div>
       </div>
+
+      <Card className="mb-6 border-emerald-200 bg-white">
+        <CardHeader>
+          <div>
+            <CardTitle>Prescription history</CardTitle>
+            <CardDescription>Veterinarian prescriptions are read-only</CardDescription>
+          </div>
+          <FileText className="h-5 w-5 text-emerald-600" />
+        </CardHeader>
+        {farmerPrescriptions.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No prescriptions yet.</p> : <div className="space-y-3">{farmerPrescriptions.map((item) => {
+          const medicine = medicines.find((entry) => entry.medicineId === item.medicineId);
+          const otp = otps.find((entry) => entry.prescriptionId === item.prescriptionId && entry.status === 'ACTIVE');
+          return (
+            <div key={item.prescriptionId} className="rounded-xl border border-slate-200 p-4">
+              <PrescriptionWorkflowStrip status={item.status} medicineVerified={item.medicineVerified} />
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                <div><p className="text-xs text-slate-500">Prescription ID</p><p className="mt-1 font-semibold text-slate-900">{item.prescriptionId}</p></div>
+                <div><p className="text-xs text-slate-500">Case ID</p><p className="mt-1 font-semibold text-slate-800">{item.caseId}</p></div>
+                <div><p className="text-xs text-slate-500">Medicine</p><p className="mt-1 text-sm text-slate-700">{medicine?.name || item.medicineId}</p></div>
+                <div><p className="text-xs text-slate-500">Quantity</p><p className="mt-1 text-sm text-slate-700">{Number(item.treatmentQuantity || 0) + Number(item.preventiveQuantity || 0)}</p></div>
+                <div><p className="text-xs text-slate-500">Instructions</p><p className="mt-1 text-sm text-slate-700">{item.instructions || '—'}</p></div>
+                <div><p className="text-xs text-slate-500">Status</p><Badge className="mt-1" variant={prescriptionStatusVariant(item.status)}>{item.status}</Badge></div>
+              </div>
+              {import.meta.env.DEV && otp && item.status === PRESCRIPTION_STATUS.OTP_PENDING && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  DEV ONLY mock OTP (not SMS): {otp.code} · expires {new Date(otp.expiresAt).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          );
+        })}</div>}
+      </Card>
 
       <Card className="mb-6 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white">
         <div className="flex flex-col gap-4 p-1 sm:flex-row sm:items-center sm:justify-between">

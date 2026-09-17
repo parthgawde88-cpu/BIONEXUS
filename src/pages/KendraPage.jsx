@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity, AlertTriangle, ArrowRight, Bell, Building2, CalendarClock,
   ClipboardList, Clock3, FlaskConical, HeartPulse, MapPin, Plus,
-  ShieldCheck, Stethoscope, UserRound, UsersRound,
+  ShieldCheck, Stethoscope, UserRound, UsersRound, QrCode,
 } from 'lucide-react';
+import { PRESCRIPTION_STATUS } from '../domain';
+import PrescriptionWorkflowStrip from '../components/PrescriptionWorkflowStrip';
+import Alert from '../components/ui/Alert';
+import { Input } from '../components/ui/FormField';
 import Button from '../components/ui/Button';
 import Card, { CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -80,8 +84,12 @@ function SectionHeader({ title, description, action }) {
 }
 
 export default function KendraPage() {
-  const { samples, cases, farmers, animals, flocks } = useBionexus();
+  const { samples, cases, farmers, animals, flocks, prescriptions, medicines, inventory, inventoryTransactions, verifyPrescriptionMedicine, dispensePrescription } = useBionexus();
   const incomingSamples = samples.filter((sample) => ['COLLECTED', 'RECEIVED_AT_KENDRA', 'STORED', 'PICKED_UP', 'TESTING'].includes(sample.status));
+  const dispenseQueue = prescriptions.filter((item) => item.status === PRESCRIPTION_STATUS.VERIFIED || item.status === PRESCRIPTION_STATUS.DISPENSED);
+  const [scanCodes, setScanCodes] = useState({});
+  const [kendraMessage, setKendraMessage] = useState('');
+  const [kendraError, setKendraError] = useState('');
 
   return (
     <div className="mx-auto max-w-7xl py-6 sm:py-8">
@@ -93,6 +101,52 @@ export default function KendraPage() {
       <Card className="mb-6 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white"><div className="flex flex-col gap-4 p-1 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-medium text-amber-700">Today at the Kendra</p><h2 className="mt-1 text-xl font-semibold text-slate-900">Coordinate care across 6 villages and keep every request moving.</h2></div><div className="flex items-center gap-2 text-sm text-slate-600"><Clock3 className="h-4 w-4 text-amber-600" aria-hidden="true" />Tuesday, 18 August 2026</div></div></Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{summaryCards.map(({ label, value, detail, icon: Icon, tone }) => <Card key={label} className="border-slate-200 bg-white"><div className="flex items-start justify-between gap-3"><div><p className="text-sm text-slate-500">{label}</p><p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{value}</p></div><div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tone === 'emerald' ? 'bg-emerald-100 text-emerald-700' : tone === 'red' ? 'bg-red-100 text-red-700' : tone === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}><Icon className="h-5 w-5" aria-hidden="true" /></div></div><p className="mt-4 text-sm text-slate-600">{detail}</p></Card>)}</div>
+
+      <Card className="mt-8 border-amber-200 bg-white"><SectionHeader title="Medicine dispensing" description="OTP verified → medicine verified → dispense → inventory updated." />
+        {kendraMessage && <Alert className="mb-4" variant="success" onDismiss={() => setKendraMessage('')}>{kendraMessage}</Alert>}
+        {kendraError && <Alert className="mb-4" variant="danger" onDismiss={() => setKendraError('')}>{kendraError}</Alert>}
+        <div className="space-y-3">{dispenseQueue.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No verified prescriptions waiting for dispensing.</p> : dispenseQueue.map((item) => {
+          const farmer = farmers.find((entry) => entry.farmerId === item.farmerId);
+          const medicine = medicines.find((entry) => entry.medicineId === item.medicineId);
+          const stock = inventory.find((entry) => entry.medicineId === item.medicineId);
+          const quantity = Number(item.treatmentQuantity || 0) + Number(item.preventiveQuantity || 0);
+          return (
+            <div key={item.prescriptionId} className="rounded-xl border border-slate-200 p-4">
+              <PrescriptionWorkflowStrip status={item.status} medicineVerified={item.medicineVerified} />
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                <div><p className="text-xs text-slate-500">Prescription ID</p><p className="mt-1 font-semibold text-slate-900">{item.prescriptionId}</p></div>
+                <div><p className="text-xs text-slate-500">Farmer</p><p className="mt-1 text-sm font-semibold text-slate-800">{farmer?.name}</p></div>
+                <div><p className="text-xs text-slate-500">Medicine</p><p className="mt-1 text-sm text-slate-700">{medicine?.name}</p></div>
+                <div><p className="text-xs text-slate-500">Batch</p><p className="mt-1 text-sm text-slate-700">{item.verifiedBatch || medicine?.batch || '—'}</p></div>
+                <div><p className="text-xs text-slate-500">Quantity</p><p className="mt-1 text-sm text-slate-700">{quantity}</p></div>
+                <div><p className="text-xs text-slate-500">Remaining stock</p><p className="mt-1 text-sm text-slate-700">{stock?.availableQuantity ?? 0}</p></div>
+                <div><p className="text-xs text-slate-500">Dispensing status</p><Badge className="mt-1" variant={item.status === PRESCRIPTION_STATUS.DISPENSED ? 'success' : item.medicineVerified ? 'info' : 'warning'}>{item.status === PRESCRIPTION_STATUS.DISPENSED ? 'DISPENSED' : item.medicineVerified ? 'MEDICINE VERIFIED' : 'OTP VERIFIED'}</Badge></div>
+              </div>
+              {item.status === PRESCRIPTION_STATUS.VERIFIED && (
+                <div className="mt-4 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-amber-900"><QrCode className="h-4 w-4" />Mock barcode / QR scanner</div>
+                  <p className="mt-1 text-xs text-amber-800">Verifies medicine identity, prescription, quantity, and stock. No camera integration.</p>
+                  <div className="mt-3 flex flex-wrap items-end gap-3">
+                    <Input label="Scanned code" value={scanCodes[item.prescriptionId] || ''} onChange={(event) => setScanCodes((current) => ({ ...current, [item.prescriptionId]: event.target.value }))} placeholder="MED-001 or QR-MED-001" />
+                    <Button variant="secondary" size="sm" onClick={() => setScanCodes((current) => ({ ...current, [item.prescriptionId]: `QR-${item.medicineId}` }))}>Simulate scan</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const result = verifyPrescriptionMedicine({ prescriptionId: item.prescriptionId, scannedCode: scanCodes[item.prescriptionId], actorId: 'USR-004' });
+                      if (result.ok) { setKendraMessage('Medicine verified.'); setKendraError(''); }
+                      else { setKendraError(result.error === 'INSUFFICIENT_STOCK' ? 'Not enough stock to dispense.' : 'Medicine verification failed.'); }
+                    }}>Verify medicine</Button>
+                    <Button size="sm" disabled={!item.medicineVerified} onClick={() => {
+                      const result = dispensePrescription({ prescriptionId: item.prescriptionId, actorId: 'USR-004' });
+                      if (result.ok) { setKendraMessage(`${item.prescriptionId} dispensed. Inventory updated.`); setKendraError(''); }
+                      else { setKendraError(result.error === 'INSUFFICIENT_STOCK' ? 'Cannot dispense beyond available stock.' : 'Dispense blocked until OTP and medicine are verified.'); }
+                    }}>Dispense</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}</div>
+        {inventoryTransactions.length > 0 && <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">Latest inventory txn: {inventoryTransactions[inventoryTransactions.length - 1].transactionId} · qty {inventoryTransactions[inventoryTransactions.length - 1].quantity}</div>}
+      </Card>
 
       <Card className="mt-8 border-amber-200 bg-white"><SectionHeader title="Incoming Samples" description="Receive, store, and move diagnostic samples through the Kendra." /><div className="space-y-3">{incomingSamples.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No incoming samples.</p> : incomingSamples.map((sample) => { const caseItem = cases.find((item) => item.caseId === sample.caseId); const farmer = farmers.find((item) => item.farmerId === sample.farmerId || item.farmerId === caseItem?.farmerId); const subject = caseItem ? getCaseSubject(caseItem, animals, flocks) : null; return <div key={sample.sampleId} className="rounded-xl border border-slate-200 p-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6"><div><p className="text-xs text-slate-500">Sample ID</p><p className="mt-1 font-semibold text-slate-900">{sample.sampleId}</p></div><div><p className="text-xs text-slate-500">Case / farmer</p><p className="mt-1 text-sm font-semibold text-slate-800">{sample.caseId}</p><p className="text-xs text-slate-500">{farmer?.name}</p></div><div><p className="text-xs text-slate-500">Animal/Flock</p><p className="mt-1 text-sm text-slate-700">{subject?.id}</p></div><div><p className="text-xs text-slate-500">Sample type</p><p className="mt-1 text-sm text-slate-700">{sampleTypeLabel(sample.sampleType)}</p></div><div><p className="text-xs text-slate-500">Collected by / time</p><p className="mt-1 text-sm text-slate-700">{sample.collectedBy || 'Pending'}</p><p className="text-xs text-slate-500">{formatDateTime(sample.collectedAt)}</p></div><div><p className="text-xs text-slate-500">Status</p><Badge className="mt-1" variant={sample.status === 'STORED' ? 'success' : 'warning'}>{sample.status}</Badge></div></div><div className="mt-4 text-right"><Link to={`/kendra/samples/${sample.sampleId}`}><Button size="sm">{sample.status === 'COLLECTED' ? 'Receive Sample' : 'Open Sample'}</Button></Link></div></div>; })}</div></Card>
 

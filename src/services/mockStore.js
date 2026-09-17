@@ -25,6 +25,7 @@ export const mockStore = {
   samples: [createSample({ sampleId: 'SAMPLE-1042', caseId: 'CASE-204', sampleType: 'MILK_CULTURE', kendraId: 'KEN-UDAIPUR', status: SAMPLE_STATUS.RECEIVED_AT_KENDRA, qrCodeReference: 'QR-SAMPLE-1042' })],
   medicines: [{ medicineId: 'MED-001', name: 'Veterinary supportive care', batch: 'B-2026-04', expiry: '2027-04-30', quantity: 120 }],
   inventory: [{ inventoryId: 'INV-001', kendraId: 'KEN-UDAIPUR', medicineId: 'MED-001', availableQuantity: 120, reservedQuantity: 0, usedQuantity: 0 }],
+  inventoryTransactions: [],
   prescriptionOtps: [],
   alerts: [],
   riskZones: [],

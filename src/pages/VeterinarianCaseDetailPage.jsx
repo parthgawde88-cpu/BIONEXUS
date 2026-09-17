@@ -7,8 +7,9 @@ import Badge from '../components/ui/Badge';
 import Alert from '../components/ui/Alert';
 import { Input, Select, Textarea } from '../components/ui/FormField';
 import { useBionexus } from '../context';
-import { RISK_LEVELS, SAMPLE_STATUS } from '../domain';
+import { PRESCRIPTION_STATUS, RISK_LEVELS, SAMPLE_STATUS } from '../domain';
 import { formatCaseStatus, formatDateTime, getCaseSubject, riskVariant, statusVariant } from '../utils/casePresentation';
+import PrescriptionWorkflowStrip from '../components/PrescriptionWorkflowStrip';
 
 const riskOptions = [
   { value: RISK_LEVELS.LOW, label: 'LOW', detail: 'Treatment / Preventive action', selectedClass: 'border-emerald-500 bg-emerald-50' },
@@ -18,7 +19,7 @@ const riskOptions = [
 
 export default function VeterinarianCaseDetailPage() {
   const { caseId } = useParams();
-  const { cases, farmers, animals, flocks, veterinarians, assessments, medicines, samples, recordVeterinarianDecision, createPrescription, requestSample, createEmergencyTask } = useBionexus();
+  const { cases, farmers, animals, flocks, veterinarians, assessments, medicines, samples, prescriptions, recordVeterinarianDecision, createPrescription, requestSample, createEmergencyTask } = useBionexus();
   const caseItem = cases.find((item) => item.caseId === caseId);
   const veterinarian = veterinarians[0];
   const farmer = farmers.find((item) => item.farmerId === caseItem?.farmerId);
@@ -36,6 +37,8 @@ export default function VeterinarianCaseDetailPage() {
   const [affectedCount, setAffectedCount] = useState('1');
   const [preventiveCount, setPreventiveCount] = useState('0');
   const [preventiveQuantity, setPreventiveQuantity] = useState('0');
+  const [affectedAnimalIds, setAffectedAnimalIds] = useState(caseItem?.animalId ? [caseItem.animalId] : []);
+  const [affectedFlockIds, setAffectedFlockIds] = useState(caseItem?.flockId ? [caseItem.flockId] : []);
   const [sampleType, setSampleType] = useState('BLOOD');
   const [collectionInstructions, setCollectionInstructions] = useState('Collect a clean sample and label it with the case ID.');
   const [priority, setPriority] = useState('HIGH');
@@ -51,9 +54,32 @@ export default function VeterinarianCaseDetailPage() {
     setActionMessage(`${riskLevel} decision recorded. ${selectedRisk.detail} is now required.`);
   };
 
+  const toggleId = (list, setList, id) => {
+    setList(list.includes(id) ? list.filter((item) => item !== id) : [...list, id]);
+  };
+
   const submitTreatmentPlan = () => {
-    createPrescription({ caseId, veterinarianId: veterinarian.id, farmerId: caseItem.farmerId, status: 'READY_FOR_VERIFICATION', items: [{ type: 'TREATMENT', medicineId, eligibleAnimalIds: caseItem.animalId ? [caseItem.animalId] : [], eligibleFlockIds: caseItem.flockId ? [caseItem.flockId] : [], quantity: Number(affectedCount), instructions: `${dosage}; ${duration}; ${instructions}` }, ...(Number(preventiveCount) > 0 ? [{ type: 'PREVENTIVE_ACTION', eligibleAnimalIds: caseItem.animalId ? [caseItem.animalId] : [], eligibleFlockIds: caseItem.flockId ? [caseItem.flockId] : [], quantity: Number(preventiveQuantity), instructions: 'Veterinarian-defined eligible population' }] : [])] });
-    setActionMessage('Treatment plan created for the veterinarian-defined eligible population.');
+    if (!medicineId || !dosage.trim() || !duration.trim() || !instructions.trim() || Number(affectedCount) < 1) return;
+    createPrescription({
+      caseId,
+      veterinarianId: veterinarian.id,
+      farmerId: caseItem.farmerId,
+      status: PRESCRIPTION_STATUS.CREATED,
+      medicineId,
+      dosage,
+      duration,
+      instructions,
+      affectedAnimalIds,
+      affectedFlockIds,
+      treatmentQuantity: Number(affectedCount),
+      preventiveEligiblePopulation: Number(preventiveCount),
+      preventiveQuantity: Number(preventiveQuantity),
+      items: [
+        { type: 'TREATMENT', medicineId, eligibleAnimalIds: affectedAnimalIds, eligibleFlockIds: affectedFlockIds, quantity: Number(affectedCount), instructions: `${dosage}; ${duration}; ${instructions}` },
+        ...(Number(preventiveCount) > 0 || Number(preventiveQuantity) > 0 ? [{ type: 'PREVENTIVE_ACTION', medicineId, eligibleAnimalIds: [], eligibleFlockIds: [], quantity: Number(preventiveQuantity), instructions: `Preventive eligible population: ${preventiveCount}` }] : []),
+      ],
+    });
+    setActionMessage('Prescription created. OTP pending with farmer / Seva Sakhi.');
   };
 
   const submitSampleRequest = () => {
@@ -76,7 +102,7 @@ export default function VeterinarianCaseDetailPage() {
 
     <Card className="mt-6"><CardHeader><div><CardTitle>Veterinarian Assessment</CardTitle><CardDescription>Choose one explicit clinical risk level and required action.</CardDescription></div><AlertTriangle className="h-5 w-5 text-amber-600" /></CardHeader><form onSubmit={submitAssessment}><div className="grid gap-3 md:grid-cols-3">{riskOptions.map((option) => <button key={option.value} type="button" onClick={() => setRiskLevel(option.value)} className={['rounded-xl border-2 p-4 text-left', riskLevel === option.value ? `border-${option.color}-500 bg-${option.color}-50` : 'border-slate-200'].join(' ')}><div className="flex items-center justify-between"><span className="font-bold text-slate-900">{option.label}</span>{riskLevel === option.value && <CheckCircle2 className="h-5 w-5 text-emerald-600" />}</div><p className="mt-2 text-xs text-slate-600">{option.detail}</p></button>)}</div><div className="mt-5 grid gap-4 md:grid-cols-2"><Textarea label="Clinical assessment" required rows={3} value={assessment} onChange={(event) => setAssessment(event.target.value)} placeholder="Describe the clinical assessment." /><Textarea label="Clinical notes" rows={3} value={clinicalNotes} onChange={(event) => setClinicalNotes(event.target.value)} placeholder="Record relevant notes and observations." /></div><label className="mt-4 flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600" />I confirm this is my veterinarian decision and not an automated AI diagnosis.</label><Button className="mt-5" type="submit" disabled={!riskLevel || !assessment.trim() || !confirmed} icon={Send}>Confirm Veterinarian Decision</Button></form></Card>
 
-    {caseItem.riskLevel === RISK_LEVELS.LOW && <Card className="mt-6 border-emerald-200"><CardHeader><div><CardTitle>Create Treatment Plan</CardTitle><CardDescription>Treatment and prevention populations are defined separately.</CardDescription></div><FileText className="h-5 w-5 text-emerald-600" /></CardHeader><div className="grid gap-4 md:grid-cols-2"><Select label="Medicine" value={medicineId} onChange={(event) => setMedicineId(event.target.value)}>{medicines.map((item) => <option key={item.medicineId} value={item.medicineId}>{item.name}</option>)}</Select><Input label="Dosage" value={dosage} onChange={(event) => setDosage(event.target.value)} placeholder="e.g. 10 ml twice daily" /><Input label="Duration" value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="e.g. 5 days" /><Input label="Treatment quantity (affected)" type="number" min="1" value={affectedCount} onChange={(event) => setAffectedCount(event.target.value)} /><Input label="Preventive eligible population" type="number" min="0" value={preventiveCount} onChange={(event) => setPreventiveCount(event.target.value)} /><Input label="Preventive quantity" type="number" min="0" value={preventiveQuantity} onChange={(event) => setPreventiveQuantity(event.target.value)} hint="Set only after defining eligible animals/flocks." /></div><Textarea className="mt-4" label="Instructions" value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder="Administration and follow-up instructions" /><Alert className="mt-4" variant="info">Do not prescribe for an entire herd or flock automatically. Affected animals and preventive eligible animals must be veterinarian-defined.</Alert><Button className="mt-4" onClick={submitTreatmentPlan}>Create Treatment Plan</Button></Card>}
+    {caseItem.riskLevel === RISK_LEVELS.LOW && <Card className="mt-6 border-emerald-200"><CardHeader><div><CardTitle>Create Treatment Plan</CardTitle><CardDescription>Treatment and prevention populations are defined separately. AI never prescribes medicine.</CardDescription></div><FileText className="h-5 w-5 text-emerald-600" /></CardHeader><PrescriptionWorkflowStrip status={prescriptions.find((item) => item.caseId === caseId)?.status} medicineVerified={prescriptions.find((item) => item.caseId === caseId)?.medicineVerified} /><div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-lg border border-slate-200 p-3"><p className="text-xs font-semibold text-slate-500">Affected animal(s)</p>{animals.filter((item) => item.farmerId === caseItem.farmerId).map((item) => <label key={item.rapidId} className="mt-2 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={affectedAnimalIds.includes(item.rapidId)} onChange={() => toggleId(affectedAnimalIds, setAffectedAnimalIds, item.rapidId)} className="h-4 w-4 rounded border-slate-300 text-emerald-600" />{item.rapidId} · {item.species}</label>)}</div><div className="rounded-lg border border-slate-200 p-3"><p className="text-xs font-semibold text-slate-500">Affected flock(s)</p>{flocks.filter((item) => item.farmerId === caseItem.farmerId).map((item) => <label key={item.flockId} className="mt-2 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={affectedFlockIds.includes(item.flockId)} onChange={() => toggleId(affectedFlockIds, setAffectedFlockIds, item.flockId)} className="h-4 w-4 rounded border-slate-300 text-emerald-600" />{item.flockId} · {item.species} ({item.count})</label>)}{flocks.filter((item) => item.farmerId === caseItem.farmerId).length === 0 && <p className="mt-2 text-xs text-slate-500">No flocks registered.</p>}</div></div><div className="mt-4 grid gap-4 md:grid-cols-2"><Select label="Treatment medicine" value={medicineId} onChange={(event) => setMedicineId(event.target.value)}>{medicines.map((item) => <option key={item.medicineId} value={item.medicineId}>{item.name}</option>)}</Select><Input label="Dosage" value={dosage} onChange={(event) => setDosage(event.target.value)} placeholder="e.g. 10 ml twice daily" /><Input label="Duration" value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="e.g. 5 days" /><Input label="Treatment quantity (affected)" type="number" min="1" value={affectedCount} onChange={(event) => setAffectedCount(event.target.value)} /><Input label="Preventive eligible population" type="number" min="0" value={preventiveCount} onChange={(event) => setPreventiveCount(event.target.value)} hint="Veterinarian-defined. Not auto-filled from flock size." /><Input label="Preventive quantity" type="number" min="0" value={preventiveQuantity} onChange={(event) => setPreventiveQuantity(event.target.value)} hint="Set independently of total herd/flock count." /></div><Textarea className="mt-4" label="Instructions" value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder="Administration and follow-up instructions" /><Alert className="mt-4" variant="info">Do not prescribe for an entire herd or flock automatically. Affected animals and preventive eligible animals must be veterinarian-defined.</Alert><Button className="mt-4" onClick={submitTreatmentPlan} disabled={!dosage.trim() || !duration.trim() || !instructions.trim()}>Create Prescription</Button>{prescriptions.filter((item) => item.caseId === caseId).map((item) => <div key={item.prescriptionId} className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm"><p className="font-semibold text-slate-800">{item.prescriptionId}</p><p className="mt-1 text-slate-600">Status {item.status} · Qty {item.treatmentQuantity} + preventive {item.preventiveQuantity}</p></div>)}</Card>}
 
     {caseItem.riskLevel === RISK_LEVELS.YELLOW && <Card className="mt-6 border-amber-200"><CardHeader><div><CardTitle>YELLOW - DIAGNOSTIC SAMPLE REQUIRED</CardTitle><CardDescription>Create a request for Seva Sakhi collection.</CardDescription></div><ClipboardList className="h-5 w-5 text-amber-600" /></CardHeader><div className="grid gap-4 md:grid-cols-3"><Select label="Sample type" value={sampleType} onChange={(event) => setSampleType(event.target.value)}><option value="BLOOD">Blood</option><option value="SWAB">Swab</option><option value="TISSUE">Tissue</option><option value="FECAL">Fecal</option><option value="OTHER">Other</option></Select><Select label="Collection priority" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="ROUTINE">Routine</option><option value="PRIORITY">Priority</option><option value="URGENT">Urgent</option></Select><Input label="Current sample status" value={samples.find((item) => item.caseId === caseId)?.status || 'Not requested'} readOnly /></div><Textarea className="mt-4" label="Collection instructions" value={collectionInstructions} onChange={(event) => setCollectionInstructions(event.target.value)} /><Textarea className="mt-4" label="Veterinarian notes" value={clinicalNotes} onChange={(event) => setClinicalNotes(event.target.value)} /><Button className="mt-4" onClick={submitSampleRequest}>Request Sample Collection</Button></Card>}
 

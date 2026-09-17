@@ -49,6 +49,13 @@ export const PRESCRIPTION_ITEM_TYPES = Object.freeze({
   PREVENTIVE_ACTION: 'PREVENTIVE_ACTION',
 });
 
+export const PRESCRIPTION_STATUS = Object.freeze({
+  CREATED: 'CREATED',
+  OTP_PENDING: 'OTP_PENDING',
+  VERIFIED: 'VERIFIED',
+  DISPENSED: 'DISPENSED',
+});
+
 /** @typedef {{ id: string, role: string, name: string, mobile: string, status: string }} User */
 /** @typedef {{ farmerId: string, userId: string, name: string, mobile: string, villageId: string, address: string, preferredLanguage: string }} FarmerProfile */
 /** @typedef {{ rapidId: string, farmerId: string, species: string, breed: string, sex: string, age: string|number, healthStatus: string, vaccinationStatus: string, status: string }} Animal */
@@ -97,8 +104,21 @@ export const createPrescription = (input) => ({
   caseId: input.caseId,
   veterinarianId: input.veterinarianId,
   farmerId: input.farmerId,
-  status: input.status || 'DRAFT',
+  status: input.status || PRESCRIPTION_STATUS.CREATED,
   createdAt: input.createdAt || new Date().toISOString(),
+  medicineId: input.medicineId || null,
+  dosage: input.dosage || '',
+  duration: input.duration || '',
+  instructions: input.instructions || '',
+  affectedAnimalIds: input.affectedAnimalIds || [],
+  affectedFlockIds: input.affectedFlockIds || [],
+  treatmentQuantity: Number(input.treatmentQuantity || 0),
+  preventiveEligiblePopulation: Number(input.preventiveEligiblePopulation || 0),
+  preventiveQuantity: Number(input.preventiveQuantity || 0),
+  medicineVerified: Boolean(input.medicineVerified),
+  dispensedAt: input.dispensedAt || null,
+  dispensedQuantity: Number(input.dispensedQuantity || 0),
+  verifiedBatch: input.verifiedBatch || null,
   items: (input.items || []).map((item) => ({
     type: item.type || PRESCRIPTION_ITEM_TYPES.TREATMENT,
     medicineId: item.medicineId || null,

@@ -1,5 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PRESCRIPTION_STATUS } from '../domain';
+import PrescriptionWorkflowStrip from '../components/PrescriptionWorkflowStrip';
+import Alert from '../components/ui/Alert';
+import { Input } from '../components/ui/FormField';
 import {
   Bell,
   MapPin,
@@ -116,8 +120,12 @@ const taskStatusVariant = (status) => {
 };
 
 export default function PashuSakhiPage() {
-  const { samples, cases, farmers, animals, flocks, veterinarians } = useBionexus();
+  const { samples, cases, farmers, animals, flocks, veterinarians, prescriptions, medicines, verifyPrescriptionOtp } = useBionexus();
   const pendingSamples = samples.filter((sample) => sample.status === 'REQUESTED');
+  const prescriptionTasks = prescriptions.filter((item) => item.status === PRESCRIPTION_STATUS.OTP_PENDING || item.status === PRESCRIPTION_STATUS.VERIFIED);
+  const [otpInputs, setOtpInputs] = useState({});
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otpError, setOtpError] = useState('');
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:py-8">
@@ -185,6 +193,46 @@ export default function PashuSakhiPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="mt-8 border-teal-200 bg-white">
+        <CardHeader>
+          <div>
+            <CardTitle>PENDING MEDICINE TASKS</CardTitle>
+            <CardDescription>Farmer → Sakhi OTP unlock. Prescription is read-only.</CardDescription>
+          </div>
+          <Badge variant="warning">{prescriptionTasks.filter((item) => item.status === PRESCRIPTION_STATUS.OTP_PENDING).length} OTP pending</Badge>
+        </CardHeader>
+        {otpMessage && <Alert className="mb-4" variant="success" onDismiss={() => setOtpMessage('')}>{otpMessage}</Alert>}
+        {otpError && <Alert className="mb-4" variant="danger" onDismiss={() => setOtpError('')}>{otpError}</Alert>}
+        <div className="space-y-3">
+          {prescriptionTasks.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No pending prescription tasks.</p> : prescriptionTasks.map((item) => {
+            const farmer = farmers.find((entry) => entry.farmerId === item.farmerId);
+            const medicine = medicines.find((entry) => entry.medicineId === item.medicineId);
+            return (
+              <div key={item.prescriptionId} className="rounded-xl border border-slate-200 p-4">
+                <PrescriptionWorkflowStrip status={item.status} medicineVerified={item.medicineVerified} />
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  <div><p className="text-xs text-slate-500">Prescription</p><p className="mt-1 font-semibold text-slate-900">{item.prescriptionId}</p><p className="text-xs text-slate-500">Case {item.caseId}</p></div>
+                  <div><p className="text-xs text-slate-500">Farmer</p><p className="mt-1 text-sm font-semibold text-slate-800">{farmer?.name}</p></div>
+                  <div><p className="text-xs text-slate-500">Medicine / qty</p><p className="mt-1 text-sm text-slate-700">{medicine?.name}</p><p className="text-xs text-slate-500">{Number(item.treatmentQuantity || 0) + Number(item.preventiveQuantity || 0)} units</p></div>
+                  <div><p className="text-xs text-slate-500">Instructions</p><p className="mt-1 text-sm text-slate-700">{item.instructions}</p></div>
+                  <div><p className="text-xs text-slate-500">Status</p><Badge className="mt-1" variant={item.status === PRESCRIPTION_STATUS.VERIFIED ? 'success' : 'warning'}>{item.status}</Badge></div>
+                </div>
+                {item.status === PRESCRIPTION_STATUS.OTP_PENDING ? (
+                  <div className="mt-4 flex flex-wrap items-end gap-3">
+                    <Input label="Farmer OTP" value={otpInputs[item.prescriptionId] || ''} onChange={(event) => setOtpInputs((current) => ({ ...current, [item.prescriptionId]: event.target.value }))} placeholder="6-digit OTP" />
+                    <Button size="sm" onClick={() => {
+                      const result = verifyPrescriptionOtp({ prescriptionId: item.prescriptionId, farmerId: item.farmerId, code: otpInputs[item.prescriptionId], actorId: 'USR-002' });
+                      if (result.ok) { setOtpMessage(`${item.prescriptionId} unlocked.`); setOtpError(''); }
+                      else { setOtpError('OTP not verified. Ask farmer for the current mock code.'); }
+                    }}>Unlock with OTP</Button>
+                  </div>
+                ) : <p className="mt-3 text-xs font-medium text-teal-700">Unlocked. Prescription cannot be modified.</p>}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       <Card className="mt-8 border-teal-200 bg-white">
         <CardHeader>
