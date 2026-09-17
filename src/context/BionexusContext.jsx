@@ -23,6 +23,7 @@ export function BionexusProvider({ children }) {
   const [inventory, setInventory] = useState(() => inventoryService.list());
   const [inventoryTransactions, setInventoryTransactions] = useState(() => inventoryService.listTransactions());
   const [auditEvents, setAuditEvents] = useState(() => [...mockStore.auditEvents]);
+  const [sessionUser, setSessionUser] = useState(null);
 
   const refreshAudit = () => setAuditEvents([...mockStore.auditEvents]);
   const refreshPrescriptions = () => setPrescriptions(prescriptionsService.list());
@@ -155,6 +156,21 @@ export function BionexusProvider({ children }) {
     return task;
   };
 
+  const login = ({ role, credential }) => {
+    const user = mockStore.users.find((item) => item.role === role) || {
+      id: `MOCK-${role}`,
+      role,
+      name: role === 'FARMER' ? 'Demo Farmer' : 'Demo User',
+      mobile: credential,
+      status: 'ACTIVE',
+    };
+    const authenticatedUser = { ...user, role, credential };
+    setSessionUser(authenticatedUser);
+    return authenticatedUser;
+  };
+
+  const logout = () => setSessionUser(null);
+
   const value = useMemo(() => ({
     users: mockStore.users,
     farmers: mockStore.farmers,
@@ -170,6 +186,9 @@ export function BionexusProvider({ children }) {
     emergencyTasks,
     auditEvents,
     otps,
+    sessionUser,
+    login,
+    logout,
     cases,
     assessments,
     prescriptions,
@@ -190,7 +209,7 @@ export function BionexusProvider({ children }) {
     verifyPrescriptionMedicine,
     dispensePrescription,
     createEmergencyTask,
-  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, auditEvents]);
+  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, auditEvents, sessionUser]);
 
   return <BionexusContext.Provider value={value}>{children}</BionexusContext.Provider>;
 }

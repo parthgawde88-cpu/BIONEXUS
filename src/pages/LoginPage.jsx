@@ -11,19 +11,21 @@ import {
 import Button  from '../components/ui/Button';
 import { Input, Select } from '../components/ui/FormField';
 import Alert  from '../components/ui/Alert';
+import { useBionexus } from '../context';
 
 // ─── Role options ─────────────────────────────────────────────────────────────
 const ROLES = [
-  { value: 'farmer',        label: 'Farmer — किसान' },
-  { value: 'pashu-sakhi',   label: 'Pashu Sakhi — पशु सखी' },
-  { value: 'veterinarian',  label: 'Veterinarian — पशु चिकित्सक' },
-  { value: 'kendra',        label: 'Pashu Seva Kendra — पशु सेवा केंद्र' },
-  { value: 'admin',         label: 'System Administrator' },
+  { value: 'FARMER',        path: 'farmer', label: 'Farmer — किसान', credentialLabel: 'Mobile number', placeholder: 'e.g. 9876543210' },
+  { value: 'SEVA_SAKHI',    path: 'pashu-sakhi', label: 'Pashu Sakhi — पशु सखी', credentialLabel: 'Employee ID', placeholder: 'e.g. SAKHI-1024' },
+  { value: 'VETERINARIAN',  path: 'veterinarian', label: 'Veterinarian — पशु चिकित्सक', credentialLabel: 'Vet ID', placeholder: 'e.g. VET-204' },
+  { value: 'KENDRA',        path: 'kendra', label: 'Pashu Seva Kendra — पशु सेवा केंद्र', credentialLabel: 'Kendra ID', placeholder: 'e.g. KEN-UDAIPUR' },
+  { value: 'ADMIN',         path: 'admin', label: 'System Administrator', credentialLabel: 'Admin ID', placeholder: 'e.g. ADM-001' },
 ];
 
 // ─── LoginPage ────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useBionexus();
 
   const [form, setForm]           = useState({ credential: '', password: '', role: '' });
   const [errors, setErrors]       = useState({});
@@ -41,8 +43,9 @@ export default function LoginPage() {
 
   const validate = () => {
     const next = {};
-    if (!form.credential.trim()) next.credential = 'Mobile number or email is required.';
-    if (!form.password)          next.password   = 'Password is required.';
+    const role = ROLES.find((item) => item.value === form.role);
+    if (!form.credential.trim()) next.credential = `${role?.credentialLabel || 'Credential'} is required.`;
+    if (form.role !== 'FARMER' && !form.password) next.password = 'Password is required.';
     if (!form.role)              next.role       = 'Please select your role.';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -53,12 +56,15 @@ export default function LoginPage() {
     if (!validate()) return;
 
     setLoading(true);
-    // UI prototype — simulated 1-second delay then redirect
     setTimeout(() => {
+      const role = ROLES.find((item) => item.value === form.role);
+      login({ role: form.role, credential: form.credential });
       setLoading(false);
-      navigate(`/${form.role}`);
+      navigate(`/${role.path}`);
     }, 900);
   };
+
+  const selectedRole = ROLES.find((item) => item.value === form.role);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -150,8 +156,9 @@ export default function LoginPage() {
               id="credential"
               name="credential"
               type="text"
-              label="Mobile Number or Email"
+              label={selectedRole?.credentialLabel || 'Select a role first'}
               placeholder="e.g. 9876543210 or user@gov.in"
+              {...(selectedRole ? { placeholder: selectedRole.placeholder } : {})}
               value={form.credential}
               onChange={handleChange}
               error={errors.credential}
@@ -160,31 +167,22 @@ export default function LoginPage() {
               prefix={<Phone className="w-4 h-4" aria-hidden="true" />}
             />
 
-            <Input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              label="Password"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={handleChange}
-              error={errors.password}
-              required
-              autoComplete="current-password"
-              prefix={<Lock className="w-4 h-4" aria-hidden="true" />}
-              suffix={
-                <button
-                  type="button"
-                  onClick={() => setShow((p) => !p)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword
-                    ? <EyeOff className="w-4 h-4" aria-hidden="true" />
-                    : <Eye    className="w-4 h-4" aria-hidden="true" />}
-                </button>
-              }
-            />
+            {form.role !== 'FARMER' && (
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                label="Password"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+                error={errors.password}
+                required
+                autoComplete="current-password"
+                prefix={<Lock className="w-4 h-4" aria-hidden="true" />}
+                suffix={<button type="button" onClick={() => setShow((p) => !p)} className="text-slate-400 hover:text-slate-600 transition-colors" aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}</button>}
+              />
+            )}
 
             <Select
               id="role"
@@ -229,7 +227,7 @@ export default function LoginPage() {
               icon={!loading ? ChevronRight : undefined}
               iconPosition="right"
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? 'Signing in…' : form.role === 'FARMER' ? 'Send Mock OTP & Login' : 'Sign In'}
             </Button>
 
           </form>
@@ -238,7 +236,7 @@ export default function LoginPage() {
           <div className="mt-6 p-3.5 rounded-lg bg-amber-50 border border-amber-200">
             <p className="text-xs text-amber-700 text-center leading-relaxed">
               <strong>UI Prototype</strong> — No real authentication is performed.
-              Selecting a role and clicking Sign In will navigate to that role's placeholder dashboard.
+              Authentication is mock only. No backend, SMS, or external API is used.
             </p>
           </div>
 

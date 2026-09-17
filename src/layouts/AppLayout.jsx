@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Home,
@@ -14,6 +15,7 @@ import {
   LogOut,
   ChevronRight,
 } from 'lucide-react';
+import { useBionexus } from '../context';
 
 // ─── Navigation items ─────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -68,6 +70,14 @@ const NAV_ITEMS = [
     description: 'System administration',
   },
 ];
+
+const ROLE_PATHS = {
+  FARMER: '/farmer',
+  SEVA_SAKHI: '/pashu-sakhi',
+  VETERINARIAN: '/veterinarian',
+  KENDRA: '/kendra',
+  ADMIN: '/admin',
+};
 
 // ─── Brand Logo ───────────────────────────────────────────────────────────────
 function Brand() {
@@ -134,6 +144,16 @@ function SidebarItem({ item, onNavigate }) {
 
 // ─── Sidebar Content ──────────────────────────────────────────────────────────
 function SidebarContent({ onClose }) {
+  const navigate = useNavigate();
+  const { sessionUser, logout } = useBionexus();
+  const visibleNavItems = NAV_ITEMS.filter((item) => item.path === ROLE_PATHS[sessionUser?.role]);
+
+  const handleLogout = () => {
+    logout();
+    onClose?.();
+    navigate('/login');
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -159,7 +179,7 @@ function SidebarContent({ onClose }) {
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
           Role Portals
         </p>
-        {NAV_ITEMS.map((item) => (
+        {visibleNavItems.map((item) => (
           <SidebarItem key={item.path} item={item} onNavigate={onClose} />
         ))}
       </nav>
@@ -176,16 +196,16 @@ function SidebarContent({ onClose }) {
           </div>
           Home
         </Link>
-        <Link
-          to="/login"
-          onClick={onClose}
+        <button
+          type="button"
+          onClick={sessionUser ? handleLogout : () => { onClose?.(); navigate('/login'); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors border border-transparent"
         >
           <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
             <LogOut className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </div>
-          Login
-        </Link>
+          {sessionUser ? 'Logout' : 'Login'}
+        </button>
         <div className="px-3 pt-3 pb-1">
           <p className="text-[10px] text-slate-400 leading-relaxed">
             BIONEXUS v0.1.0 · Stage 1

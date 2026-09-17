@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Camera, CheckCircle2, Clock3, MapPin, Mic, RotateCcw, Send, ShieldCheck, Square, Wheat } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -25,14 +25,60 @@ export default function FarmerCaseReportPage() {
   const [selectedId, setSelectedId] = useState(animals[0]?.rapidId || '');
   const [symptoms, setSymptoms] = useState('');
   const [photoCaptured, setPhotoCaptured] = useState(false);
+  const [photoDataUrl, setPhotoDataUrl] = useState('');
+  const [cameraError, setCameraError] = useState('');
   const [voiceRecorded, setVoiceRecorded] = useState(false);
   const [submittedCase, setSubmittedCase] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
   const selected = useMemo(() => livestockType === 'animal' ? animals.find((item) => item.rapidId === selectedId) : flocks.find((item) => item.flockId === selectedId), [animals, flocks, livestockType, selectedId]);
 
   const selectType = (type) => {
     setLivestockType(type);
     setSelectedId(type === 'animal' ? animals[0]?.rapidId || '' : flocks[0]?.flockId || '');
+  };
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  const startCamera = async () => {
+    setCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera access is not supported by this browser or device.');
+      return;
+    }
+    try {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (error) {
+      setCameraError(error.name === 'NotAllowedError' ? 'Camera permission was denied. Allow camera access to capture evidence.' : 'Camera is unavailable. Check the device camera and try again.');
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || !video.videoWidth) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    setPhotoDataUrl(canvas.toDataURL('image/jpeg', 0.9));
+    setPhotoCaptured(true);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  };
+
+  const retakePhoto = () => {
+    setPhotoCaptured(false);
+    setPhotoDataUrl('');
+    startCamera();
   };
 
   const handleSubmit = () => {
@@ -43,7 +89,7 @@ export default function FarmerCaseReportPage() {
       submittedBy: farmer.userId,
       symptoms: symptoms.split(',').map((item) => item.trim()).filter(Boolean),
       voiceNote: voiceRecorded ? 'mock://voice-note' : null,
-      photo: photoCaptured ? 'mock://camera-capture' : null,
+      photo: photoCaptured ? photoDataUrl : null,
       location: mockLocation,
       status: CASE_STATUS.SUBMITTED,
       riskLevel: null,
