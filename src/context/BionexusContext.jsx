@@ -257,9 +257,30 @@ export function BionexusProvider({ children }) {
 
   const logout = () => setSessionUser(null);
 
+  const [stockRefillRequests, setStockRefillRequests] = useState(() => [...mockStore.stockRefillRequests]);
+
+  const requestStockRefill = (input) => {
+    const refillRequest = {
+      requestId: `REFILL-${Date.now()}`,
+      kendraId: input.kendraId || 'KEN-UDAIPUR',
+      medicineId: input.medicineId,
+      medicineName: input.medicineName,
+      quantityRequested: Number(input.quantity || 50),
+      requestedBy: input.requestedBy || 'Dr. Parth Gawde',
+      status: 'PENDING_ADMIN_APPROVAL',
+      createdAt: new Date().toISOString(),
+    };
+    mockStore.stockRefillRequests.push(refillRequest);
+    setStockRefillRequests([...mockStore.stockRefillRequests]);
+    appendAuditEvent({ type: 'STOCK_REFILL_REQUESTED', requestId: refillRequest.requestId, medicineId: input.medicineId, actorId: input.requestedBy });
+    return refillRequest;
+  };
+
   const value = useMemo(() => ({
     users: mockStore.users,
     farmers: mockStore.farmers,
+    villages: mockStore.villages || [],
+    sevaSakhis: mockStore.sevaSakhis || [],
     animals,
     flocks,
     addAnimal,
@@ -268,6 +289,8 @@ export function BionexusProvider({ children }) {
     medicines: mockStore.medicines,
     inventory,
     inventoryTransactions,
+    stockRefillRequests,
+    requestStockRefill,
     alerts,
     riskZones,
     createDiseaseAlert,
@@ -300,7 +323,7 @@ export function BionexusProvider({ children }) {
     verifyPrescriptionMedicine,
     dispensePrescription,
     createEmergencyTask,
-  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, auditEvents, sessionUser, animals, flocks, alerts, riskZones, farmerLanguage]);
+  }), [cases, assessments, prescriptions, samples, emergencyTasks, otps, inventory, inventoryTransactions, stockRefillRequests, auditEvents, sessionUser, animals, flocks, alerts, riskZones, farmerLanguage]);
 
   return <BionexusContext.Provider value={value}>{children}</BionexusContext.Provider>;
 }
